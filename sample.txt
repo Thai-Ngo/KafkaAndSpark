@@ -1,0 +1,4 @@
+.\bin\windows\kafka-configs.bat --zookeeper localhost:2181 --entity-type topics --alter --entity-name stock-rec --add-config retention.ms=1000
+
+AMAZON 2021-04-16 3428.44 3330.93 3348.00 3409.00 4880700.00 3409.00
+AMAZON 2021-04-17 3460.00 3398.01 3443.46 3417.42 3827100.03 3417.42
