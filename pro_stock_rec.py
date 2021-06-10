@@ -5,6 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime, timedelta
 import pandas as pd
+
 from kafka import KafkaProducer
 import sys
 # driver_location = "/usr/bin/chromedriver"
@@ -14,28 +15,48 @@ options = webdriver.ChromeOptions()
 options.headless = False
 options.add_argument("--window-size=1920,1080")
 
+
 driver = webdriver.Chrome(executable_path="chromedriver", options=options)
 driver.get("https://s.cafef.vn/Lich-su-giao-dich-VIC-1.chn")
 
-date = datetime(year=2020, month=1, day=3)
-days_added = timedelta(days=1)
+f = open("config.txt", 'r')
+num_stock = int(f.readline())
 
-start_date_box = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_dpkTradeDate1_txtDatePicker")
-end_date_box = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_dpkTradeDate2_txtDatePicker")
-search_button = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_btSearch")
 
-time_now = datetime.now()
-raw_data = ""
-while date < time_now :
-    start_date_str = str(date.day) + '/' + str(date.month) + '/' + str(date.year)
-    end_date_str = str(date.day) + '/' + str(date.month) + '/' + str(date.year)
+driver = []
+start_date_box = []
+end_date_box = []
+search_button = []
+raw_data = [None] * num_stock
+stock_name = []
 
-    start_date_box.clear()
-    start_date_box.send_keys(start_date_str)
+for i in range (num_stock):
+    driver.append(webdriver.Chrome(executable_path=driver_location, options=options))
+    stock_name.append(str(f.read(3)))
+    f.read(1)
     
-    end_date_box.clear()
-    end_date_box.send_keys(end_date_str)
-    search_button.click()
+    url = "https://s.cafef.vn/Lich-su-giao-dich-" + stock_name[i] + "-1.chn"
+    driver[i].get(url)
+
+    date = datetime(year=2020, month=1, day=3)
+    days_added = timedelta(days=1)
+
+    start_date_box.append(driver[i].find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_dpkTradeDate1_txtDatePicker"))
+    end_date_box.append(driver[i].find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_dpkTradeDate2_txtDatePicker"))
+    search_button.append(driver[i].find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_btSearch"))
+
+    time_now = datetime.now()
+
+while date < time_now :
+    for i in range (num_stock):
+        start_date_str = str(date.day) + '/' + str(date.month) + '/' + str(date.year)
+        end_date_str = str(date.day) + '/' + str(date.month) + '/' + str(date.year)
+
+        start_date_box[i].clear()
+        start_date_box[i].send_keys(start_date_str)
+    
+        end_date_box[i].clear()
+        end_date_box[i].send_keys(end_date_str)
     
     time.sleep(2)
     producer = KafkaProducer(bootstrap_servers=['localhost:9092'])
