@@ -5,23 +5,19 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime, timedelta
 import pandas as pd
-
 from kafka import KafkaProducer
 import sys
 # driver_location = "/usr/bin/chromedriver"
 # binary_location = "/usr/bin/google-chrome"
 
+print("Pro stock rec")
+
 options = webdriver.ChromeOptions()
-options.headless = False
+options.headless = True
 options.add_argument("--window-size=1920,1080")
-
-
-driver = webdriver.Chrome(executable_path="chromedriver", options=options)
-driver.get("https://s.cafef.vn/Lich-su-giao-dich-VIC-1.chn")
 
 f = open("config.txt", 'r')
 num_stock = int(f.readline())
-
 
 driver = []
 start_date_box = []
@@ -31,7 +27,7 @@ raw_data = [None] * num_stock
 stock_name = []
 
 for i in range (num_stock):
-    driver.append(webdriver.Chrome(executable_path=driver_location, options=options))
+    driver.append(webdriver.Chrome(executable_path="chromedriver.exe", options=options))
     stock_name.append(str(f.read(3)))
     f.read(1)
     
@@ -47,6 +43,8 @@ for i in range (num_stock):
 
     time_now = datetime.now()
 
+producer = KafkaProducer(bootstrap_servers=['localhost:9092'])
+
 while date < time_now :
     for i in range (num_stock):
         start_date_str = str(date.day) + '/' + str(date.month) + '/' + str(date.year)
@@ -58,21 +56,26 @@ while date < time_now :
         end_date_box[i].clear()
         end_date_box[i].send_keys(end_date_str)
     
-    time.sleep(2)
-    producer = KafkaProducer(bootstrap_servers=['localhost:9092'])
-    try: 
-        raw_data = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_rptData2_ctl01_itemTR").text.split(sep=" ")
-        trim_data = f'{"VIC"} {date.date()} {raw_data[21]} {raw_data[23]} {raw_data[19]} {raw_data[3]} {raw_data[1]}'
-        print (trim_data)
-    except:
-        print("Missing")
-        trim_data = f'{"VIC"} {date.date()} {raw_data[21]} {raw_data[23]} {raw_data[19]} {raw_data[3]} {raw_data[1]}'
-        print (trim_data)
-    # finally:
-        # try:
-        #     producer.send('stock-rec', value=trim_data.encode("utf-8"))
-        # except:
-        #     e = sys.exc_info()[0]
-        #     print("Error: %s"%e)
-
+        search_button[i].click()
+    
+        try: 
+            raw_data[i] = driver[i].find_element_by_id("ctl00_ContentPlaceHolder1_ctl03_rptData2_ctl01_itemTR").text.split(sep=" ")
+            trim_data = f'{stock_name[i]} {date.date()} {raw_data[i][21]} {raw_data[i][23]} {raw_data[i][19]} {raw_data[i][3]} {raw_data[i][1]}'
+            print (trim_data)
+        except:
+            print("Missing")
+            trim_data = f'{stock_name[i]} {date.date()} {raw_data[i][21]} {raw_data[i][23]} {raw_data[i][19]} {raw_data[i][3]} {raw_data[i][1]}'
+            print (trim_data)
+        finally:
+            try:
+                producer.send('stock-rec', value=trim_data.encode("utf-8"))
+            except:
+                e = sys.exc_info()[0]
+                print("Error: %s"%e)
+                
     date += days_added
+    time.sleep(3)
+    
+    
+for i in range (num_stock):
+    driver[i].close()

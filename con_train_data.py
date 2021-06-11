@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import keras
 import pandas as pd
 import numpy as np
+import mysql.connector
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
@@ -16,10 +17,10 @@ from keras.callbacks import EarlyStopping
 from kafka import KafkaConsumer
 
 import train_model_config as cf
+sql_trueReady = "UPDATE stockinfo SET ready = 1 WHERE stock_name = %s"
 
 def train(df):
     training_set = df.iloc[0:, 5:6].values
-
     sc = MinMaxScaler(feature_range = (0, 1))
     training_set_scaled = sc.fit_transform(training_set)
     # Creating a data structure with 10 time-steps and 1 output
@@ -42,8 +43,17 @@ def train(df):
     model.fit(X_train, y_train, epochs = 10, batch_size = 1)
     print(df.iloc[0, 0] + "-model")
     model.save(df.iloc[0, 0] + "-model")
+    mycursor.execute(sql_trueReady, [df.iloc[0, 0]])
+    mydb.commit()
 
-print("Main")
+print("Con train data")
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="123456",
+  database="stock"
+)
+mycursor = mydb.cursor()
 bootstrap_servers = ['localhost:9092']
 topicName = 'train'
 consumer = KafkaConsumer (topicName, group_id ='group1',bootstrap_servers =
@@ -59,7 +69,8 @@ for msg in consumer:
     #print(properties)
     df.loc[len(df)] = list(properties)
     #print(pd.DataFrame(dict.fromkeys(properties)))
-    if cnt == 30:
+    if cnt == cf.train_size:
         print("Start training")
         train(df)
         cnt = 0
+        df = pd.DataFrame(columns=["company_name", "Date", "High", "Low", "Open", "Close", "Adj Close"])

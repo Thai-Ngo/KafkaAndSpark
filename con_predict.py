@@ -1,3 +1,4 @@
+import datetime
 import math
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -6,9 +7,15 @@ from kafka import KafkaConsumer
 import train_model_config as cf
 import keras
 from sklearn.preprocessing import MinMaxScaler
+import mysql.connector
+from datetime import timedelta
+import time
 
+sql_insertPrediction = "INSERT INTO prediction VALUES(%s, %s, %s, %s)"
 def predict(df, model):
     sc = MinMaxScaler(feature_range = (0, 1))
+    date = df.loc[0][1]
+    stock_name = df.loc[0][0]
     for i in range(0, 3):
         X_test = df.iloc[i:, 5:6]
         sc.fit_transform(X_test)
@@ -23,11 +30,20 @@ def predict(df, model):
         print(X_test.shape)
         predicted_stock_price = model.predict(X_test)
         predicted_stock_price = sc.inverse_transform(predicted_stock_price)
-        print("Date ----- Predict %s"%predicted_stock_price)
-        df.loc[len(df)] = ["VIC", "2020-6-14", 0, 0, 0, predicted_stock_price[0][0], 0]
+        print("Date: ", date + timedelta(days=i+1), "----- Predict: ", predicted_stock_price)
+        df.loc[len(df)] = [stock_name, "2020-6-14", 0, 0, 0, predicted_stock_price[0][0], 0]
+        mycursor.execute(sql_insertPrediction, [stock_name, date + timedelta(days=i+1), date, (predicted_stock_price[0][0]).item()])
+        mydb.commit()
 
+print("Con Predict")
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="123456",
+  database="stock"
+)
+mycursor = mydb.cursor()
 
-print("Main")
 bootstrap_servers = ['localhost:9092']
 topicName = 'predict'
 consumer = KafkaConsumer (topicName, group_id ='group2',bootstrap_servers =
@@ -44,9 +60,13 @@ for msg in consumer:
     df["Date"] = pd.to_datetime(df["Date"])
     if cnt == cf.time_steps:
         df = df.sort_values("Date", ascending=True)
-        print(df)
         str = msg.value.decode("utf-8")
         properties = str.split(" ")
-        model = keras.models.load_model(properties[0] + "-model")
-        cnt = 0
-        predict(df, model)
+        try:
+            model = keras.models.load_model(properties[0] + "-model")
+            cnt = 0
+            predict(df, model)
+        except:
+            print("Cannot load model")
+        finally:
+            df = pd.DataFrame(columns=["company_name", "Date", "High", "Low", "Open", "Close", "Adj Close"])

@@ -12,7 +12,7 @@ sql_insertStockInfo = "INSERT INTO stockinfo(stock_name) VALUE(%s)"
 sql_inserStockRec = "INSERT INTO stockrecord VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
 
-print("Main")
+print("Con stock rec")
 mydb = mysql.connector.connect(
   host="localhost",
   user="root",
