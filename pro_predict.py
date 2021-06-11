@@ -20,10 +20,10 @@ sql_checkModelReady = "SELECT ready FROM stockinfo WHERE stock_name = %s"
 print("Pro predict")
 
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="123456",
-  database="stock"
+  host=cf.host,
+  user=cf.user,
+  password=cf.password,
+  database=cf.database
 )
 mycursor = mydb.cursor()
 

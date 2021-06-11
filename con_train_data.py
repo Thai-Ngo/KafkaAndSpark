@@ -48,10 +48,10 @@ def train(df):
 
 print("Con train data")
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="123456",
-  database="stock"
+  host=cf.host,
+  user=cf.user,
+  password=cf.password,
+  database=cf.database
 )
 mycursor = mydb.cursor()
 bootstrap_servers = ['localhost:9092']

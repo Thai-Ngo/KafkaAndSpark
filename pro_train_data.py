@@ -22,10 +22,10 @@ sql_updateLastModel = "UPDATE stockinfo SET last_model = %s, ready = 0 WHERE sto
 print("Pro train data")
 
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="123456",
-  database="stock"
+  host=cf.host,
+  user=cf.user,
+  password=cf.password,
+  database=cf.database
 )
 mycursor = mydb.cursor()
 cur = mydb.cursor( buffered=False , dictionary=True)
@@ -52,5 +52,3 @@ while 1:
                         print("Error: %s"%e)
     mydb.commit()
     time.sleep(2)
-
-

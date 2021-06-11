@@ -14,10 +14,10 @@ sql_inserStockRec = "INSERT INTO stockrecord VALUES (%s, %s, %s, %s, %s, %s, %s)
 
 print("Con stock rec")
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="123456",
-  database="stock"
+  host=cf.host,
+  user=cf.user,
+  password=cf.password,
+  database=cf.database
 )
 mycursor = mydb.cursor()
 
